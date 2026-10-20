@@ -280,10 +280,10 @@ namespace Daiyu.Gameplay
                 long water = world.WaterAt(i);
                 Renderer renderer = visuals[i].GetComponent<Renderer>();
                 float ecology = world.EcologyAt(i) / 1000f;
-                Color dry = Color.Lerp(new Color(.58f, .38f, .2f), new Color(.3f, .72f, .28f), ecology);
-                terrainRenderers[i].material.color = water > 0 ? new Color(.16f, .5f, .36f) : dry;
+                Color dry = DryLandColor(ecology);
+                terrainRenderers[i].material.color = SurfaceColor(world.Node(i), water, ecology);
                 renderer.material.color = i == selected ? new Color(1f, .8f, .1f) : i == hovered ? new Color(1f, .95f, .45f) :
-                    water > 0 ? new Color(.1f, .65f, .95f) : dry;
+                    water > 0 ? WaterNodeColor(world.Node(i), water) : dry;
                 visuals[i].transform.localScale = new Vector3(.72f, .12f + water / 10000f * .22f, .72f);
             }
             for (int i = 0; i < vegetationRenderers.Count; i++)
@@ -304,9 +304,11 @@ namespace Daiyu.Gameplay
                 bool preview = previewEdges.Contains(i);
                 routes[i].enabled = edge.Enabled || preview;
                 bool flowing = edge.Enabled && world.LastFlow(i) > 0;
-                routes[i].startWidth = routes[i].endWidth = preview && !edge.Enabled ? .14f : flowing ? .13f : .09f;
+                bool wetRoute = world.WaterAt(edge.From) > 0 || world.WaterAt(edge.To) > 0;
+                bool dryRoute = edge.Enabled && !flowing && !wetRoute;
+                routes[i].startWidth = routes[i].endWidth = preview && !edge.Enabled ? .14f : flowing ? .13f : dryRoute ? .065f : .09f;
                 routes[i].startColor = routes[i].endColor = edge.Enabled ?
-                    (flowing ? new Color(.05f, .85f, 1f) : new Color(.05f, .35f, .72f)) :
+                    (flowing ? new Color(.05f, .85f, 1f) : dryRoute ? new Color(.38f, .38f, .42f) : new Color(.05f, .35f, .72f)) :
                     preview ? new Color(1f, .72f, .12f) : Color.clear;
 
                 LineRenderer marker = flowMarkers[i];
@@ -328,6 +330,24 @@ namespace Daiyu.Gameplay
                 }
             }
             visualTick = world.Tick;
+        }
+
+        static Color DryLandColor(float ecology)
+        {
+            return Color.Lerp(new Color(.58f, .38f, .2f), new Color(.3f, .72f, .28f), ecology);
+        }
+
+        static Color SurfaceColor(CoarseNode node, long water, float ecology)
+        {
+            if (water <= 0) return DryLandColor(ecology);
+            float depth = Mathf.Clamp01((float)water / node.Capacity);
+            return Color.Lerp(new Color(.28f, .72f, .78f), new Color(.04f, .28f, .62f), depth);
+        }
+
+        static Color WaterNodeColor(CoarseNode node, long water)
+        {
+            float depth = Mathf.Clamp01((float)water / node.Capacity);
+            return Color.Lerp(new Color(.2f, .78f, 1f), new Color(.03f, .32f, .9f), depth);
         }
 
         bool TryFindEdge(int from, int to, out int edgeId)
@@ -420,7 +440,7 @@ namespace Daiyu.Gameplay
             GUI.Label(new Rect(30, 86, 440, 22), status);
             GUI.Label(new Rect(30, 108, 440, 22), "WASD/方向键 平移   滚轮 缩放   R 催雨");
             GUI.Label(new Rect(30, 130, 440, 22), "F5 保存   L 读取   Esc 清除");
-            GUI.Label(new Rect(30, 152, 440, 22), "黄线预览 · 蓝线已开路 · 青线正在来水");
+            GUI.Label(new Rect(30, 152, 440, 22), "黄线预览 · 蓝线有水 · 灰线干涸 · 青线正在来水");
             if (plannedPath != null)
                 GUI.Label(new Rect(30, 174, 440, 22), "预览路径: " + plannedPath.Length + " 个节点（黄色）");
             int focus = selected >= 0 ? selected : hovered;
