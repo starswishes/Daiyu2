@@ -39,6 +39,8 @@ namespace Daiyu.Gameplay
         long visualTick = -1;
         Vector3 cameraFocus;
         float cameraDistance = 22f;
+        bool paused;
+        bool home = true;
         string SavePath => Path.Combine(Application.persistentDataPath, "Daiyu2", "slot0.json");
 
         void Start()
@@ -57,11 +59,17 @@ namespace Daiyu.Gameplay
             {
                 if (Keyboard.current.f5Key.wasPressedThisFrame) Save();
                 if (Keyboard.current.lKey.wasPressedThisFrame) Load();
-                if (Keyboard.current.rKey.wasPressedThisFrame) SummonRain();
+                if (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.nKey.wasPressedThisFrame)
+                    StartNewGame();
+                if (Keyboard.current.pKey.wasPressedThisFrame && !home) TogglePause();
+                if (Keyboard.current.hKey.wasPressedThisFrame) ReturnHome();
                 if (Keyboard.current.escapeKey.wasPressedThisFrame) ClearSelection();
+                if (Keyboard.current.rKey.wasPressedThisFrame && !home) SummonRain();
             }
+            if (home) return;
             HandleCamera();
-            world.Advance(Mathf.Clamp(Mathf.RoundToInt(Time.deltaTime * 1000f), 0, 1000));
+            if (!paused)
+                world.Advance(Mathf.Clamp(Mathf.RoundToInt(Time.deltaTime * 1000f), 0, 1000));
             if (visualTick != world.Tick) RefreshVisuals();
         }
 
@@ -105,6 +113,33 @@ namespace Daiyu.Gameplay
             status = world.TrySummonRain(target) ? "Rain summoned from the local atmosphere." :
                 "Not enough local atmospheric water or surface capacity.";
             RefreshVisuals();
+        }
+
+        void TogglePause()
+        {
+            paused = !paused;
+            status = paused ? "Paused. Press P to resume." : "Simulation resumed.";
+        }
+
+        void ReturnHome()
+        {
+            home = true;
+            paused = false;
+            selected = -1;
+            plannedPath = null;
+            status = "Home. Press Enter or N to start a new game.";
+            RefreshVisuals();
+        }
+
+        void StartNewGame()
+        {
+            seed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+            world = CoarseWorld.Generate(seed, radius);
+            selected = -1;
+            paused = false;
+            home = false;
+            status = "New game started.";
+            RebuildVisuals();
         }
 
         void Pick()
@@ -382,7 +417,7 @@ namespace Daiyu.Gameplay
                 if (!File.Exists(SavePath)) { status = "No Daiyu2 slot 0 exists."; return; }
                 CoarseWorldSnapshot snapshot = JsonUtility.FromJson<CoarseWorldSnapshot>(File.ReadAllText(SavePath));
                 CoarseWorld candidate = CoarseWorld.Restore(snapshot);
-                world = candidate; selected = -1; RebuildVisuals(); status = "Restored Daiyu2 slot 0.";
+                world = candidate; selected = -1; paused = false; home = false; RebuildVisuals(); status = "Restored Daiyu2 slot 0.";
             }
             catch (Exception error) { status = "Load failed; current world retained: " + error.Message; }
         }
@@ -434,18 +469,36 @@ namespace Daiyu.Gameplay
         void OnGUI()
         {
             if (world == null) return;
-            GUI.Box(new Rect(16, 16, 470, 225), "Daiyu2 · 粗粒度水世界");
+            if (home)
+            {
+                GUI.Box(new Rect(16, 16, 470, 170), "Daiyu2 · 粗粒度水世界");
+                GUI.Label(new Rect(30, 48, 440, 22), "欢迎来到 Daiyu2。");
+                GUI.Label(new Rect(30, 76, 440, 22), "Enter / N 开始随机新局");
+                GUI.Label(new Rect(30, 104, 440, 22), "L 读取独立存档   H 保持在首页");
+                GUI.Label(new Rect(30, 132, 440, 22), "固定斜向镜头；进入新局后可引水、催雨和暂停。");
+                return;
+            }
+            GUI.Box(new Rect(16, 16, 470, 247), "Daiyu2 · 粗粒度水世界");
             GUI.Label(new Rect(30, 42, 400, 22), "库存: " + world.TotalWater + " / " + world.InitialWater + "    Tick: " + world.Tick);
             GUI.Label(new Rect(30, 64, 440, 22), "天气: " + world.Weather + "   云量: " + world.CloudCover + "%");
             GUI.Label(new Rect(30, 86, 440, 22), status);
             GUI.Label(new Rect(30, 108, 440, 22), "WASD/方向键 平移   滚轮 缩放   R 催雨");
-            GUI.Label(new Rect(30, 130, 440, 22), "F5 保存   L 读取   Esc 清除");
+            GUI.Label(new Rect(30, 130, 440, 22), "F5 保存   L 读取   P 暂停/继续   N 新局   H 首页   Esc 清除");
             GUI.Label(new Rect(30, 152, 440, 22), "黄线预览 · 蓝线有水 · 灰线干涸 · 青线正在来水");
+            int nextLine = 174;
+            if (paused)
+            {
+                GUI.Label(new Rect(30, nextLine, 440, 22), "模拟已暂停；镜头仍可移动，按 P 继续");
+                nextLine += 22;
+            }
             if (plannedPath != null)
-                GUI.Label(new Rect(30, 174, 440, 22), "预览路径: " + plannedPath.Length + " 个节点（黄色）");
+            {
+                GUI.Label(new Rect(30, nextLine, 440, 22), "预览路径: " + plannedPath.Length + " 个节点（黄色）");
+                nextLine += 22;
+            }
             int focus = selected >= 0 ? selected : hovered;
             if (focus >= 0)
-                GUI.Label(new Rect(30, plannedPath != null ? 196 : 174, 440, 22), "节点 " + focus + " · 地表 " + world.WaterAt(focus) +
+                GUI.Label(new Rect(30, nextLine, 440, 22), "节点 " + focus + " · 地表 " + world.WaterAt(focus) +
                     " · 土壤 " + world.SoilLifeAt(focus) + " · 地下 " + world.GroundwaterAt(focus) +
                     " · 供泉 " + world.LastSpringFlowAt(focus) + " · 生态 " + world.EcologyAt(focus) +
                     " · 视野 " + world.VisibilityAt(focus));
