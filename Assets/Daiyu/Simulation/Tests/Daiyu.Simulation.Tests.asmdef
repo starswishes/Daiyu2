@@ -1,0 +1,8 @@
+{
+  "name": "Daiyu.Simulation.Tests",
+  "rootNamespace": "Daiyu.Simulation.Tests",
+  "references": ["Daiyu.Simulation", "Daiyu.Core"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "noEngineReferences": false
+}

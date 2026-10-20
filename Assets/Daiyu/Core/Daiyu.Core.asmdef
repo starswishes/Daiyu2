@@ -1,0 +1,6 @@
+{
+  "name": "Daiyu.Core",
+  "rootNamespace": "Daiyu.Core",
+  "references": [],
+  "noEngineReferences": true
+}

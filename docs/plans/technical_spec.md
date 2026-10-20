@@ -7,8 +7,8 @@
 项目根目录是 `D:/Starwishes/Project/Unity/Daiyu2`，不是旧工程的 `UnityProject/` 子目录。版本管理现状与授权见 [当前阶段](current_milestone.md)，恢复要求见工作流。
 
 - Unity 版本事实源：`ProjectSettings/ProjectVersion.txt`；包事实源：`Packages/manifest.json`。
-- 当前 `Assets/` 仅有 Scenes、Settings 及其 meta，未发现 C# 脚本或游戏 asmdef。
-- 当前场景：`Assets/Scenes/SampleScene.unity`、`Assets/Settings/Scenes/URP2DSceneTemplate.unity`。正式游戏场景尚未建立。
+- 当前 `Assets/` 已包含 `Assets/Daiyu/Core`、`Assets/Daiyu/Simulation` 与 `Assets/Daiyu/Gameplay`；核心、粗模型和正式场景宿主已建立，对应 asmdef 均已纳入工程。
+- 当前场景保留模板 `Assets/Scenes/SampleScene.unity`、`Assets/Settings/Scenes/URP2DSceneTemplate.unity`，正式场景为 `Assets/Daiyu/Scenes/Daiyu.unity`，唯一启用构建场景由 `ProjectSettings/EditorBuildSettings.asset` 核实。
 - 依赖清单已有 URP、2D 工具、Input System、uGUI、Test Framework 和 Unity MCP；不因此假定现有渲染器已支持方案中的透视地形、材质和光照，实施时先核实资产配置。
 - 基线快照与执行证据只在当前阶段维护；本节的模板基线不作为后续执行状态。
 
@@ -35,8 +35,8 @@
 ### 当前依赖方向
 
 ```text
-Gameplay（Unity 宿主/表现/UI） → Rivers（纯模拟） → Core（账本）
-Gameplay 也直接引用 Core；Editor 与工具按实际消费者读取运行模块。
+Gameplay（Unity 宿主/表现/UI） → Simulation（纯模拟） → Core（账本）
+Simulation 无 Unity 依赖；Gameplay 不直接拥有库存，Editor 与工具按实际消费者读取运行模块。
 ```
 
 ### 状态归属
@@ -77,7 +77,7 @@ Gameplay 也直接引用 Core；Editor 与工具按实际消费者读取运行�
 | 保存 | 新格式显式记录格式/模型/生成版本、配置、种子、拓扑/连接、库存、子系统状态、时钟/速率余量、视野和进度；可派生缓存重建 |
 | 隔离/失败 | 使用独立 `Daiyu2` 子目录与 `Daiyu2.` 偏好键，不自动读取旧 v4 路径；候选恢复验证成功后再切局，失败不覆盖当前局/原档 |
 
-这些约束批准后即为实施边界。具体类名/签名在 A 批次按实际依赖收敛并记录，不预先声称存在；多个批次需要的真实接口稳定后再提升为长期契约。
+这些约束批准后即为实施边界。具体类名/签名在 A 核心批次按实际依赖收敛，B 完成宿主/交互/最小快照接线并记录，不预先声称存在；多个批次需要的真实接口稳定后再提升为长期契约。
 
 稳定条件：正式玩家链路已接入，并有 [快速交付检查](workflow.md#fast-delivery) 及相关定向检查证据。届时按实际实现更新本节并转 `STABLE`，未实现部分仍标 `PROPOSED`。
 
