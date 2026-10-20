@@ -1,0 +1,31 @@
+# Unity generated caches and local editor state
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Player builds and generated test output
+/[Bb]uild/
+/[Bb]uilds/
+/[Aa]rtifacts/
+/[Tt]est[Rr]esults/
+
+# IDE-generated files; keep project configuration such as .vsconfig
+/.vs/
+/.idea/
+/*.csproj
+/*.sln
+/*.slnx
+/*.suo
+/*.user
+/*.userprefs
+
+# Local secrets and OS files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
