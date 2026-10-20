@@ -4,6 +4,13 @@ using Daiyu.Core;
 
 namespace Daiyu.Simulation
 {
+    public enum CoarseWeather
+    {
+        Clear,
+        Cloudy,
+        Rain
+    }
+
     public readonly struct CoarseNode
     {
         public readonly int Id;
@@ -36,10 +43,15 @@ namespace Daiyu.Simulation
 
     public sealed class CoarseWorld
     {
-        public const int ModelVersion = 1;
+        public const int ModelVersion = 2;
         public const int GeneratorVersion = 1;
         public const int TickMilliseconds = 250;
         public const int UnitsPerMillimeter = 10;
+        public const int ClimateIntervalTicks = 4;
+        public const long GroundwaterCapacity = 2000;
+        public const long GroundwaterSpringThreshold = 24;
+        public const long GroundwaterSpringRate = 8;
+        public const long SoilLifeCapacity = 10000;
         readonly CoarseNode[] nodes;
         readonly CoarseEdge[] edges;
         readonly WaterLedger ledger;
@@ -49,6 +61,8 @@ namespace Daiyu.Simulation
         readonly long[] incoming;
         readonly long[] requests;
         readonly long[] lastFlow;
+        readonly long[] lastGroundwaterRelease;
+        readonly int[] ecology;
         long tick;
         int remainderMilliseconds;
 
@@ -59,6 +73,8 @@ namespace Daiyu.Simulation
         public long TotalWater => ledger.Total;
         public long InitialWater => ledger.InitialTotal;
         public int RemainderMilliseconds => remainderMilliseconds;
+        public CoarseWeather Weather => (CoarseWeather)((tick / ClimateIntervalTicks) % 3);
+        public int CloudCover => Weather == CoarseWeather.Clear ? 150 : Weather == CoarseWeather.Cloudy ? 650 : 900;
 
         CoarseWorld(uint seed, CoarseNode[] nodes, CoarseEdge[] edges, long[] initialWater)
         {
@@ -71,6 +87,10 @@ namespace Daiyu.Simulation
             incoming = new long[nodes.Length];
             requests = new long[edges.Length];
             lastFlow = new long[edges.Length];
+            lastGroundwaterRelease = new long[nodes.Length];
+            ecology = new int[nodes.Length];
+            for (int i = 0; i < ecology.Length; i++) ecology[i] = 500;
+            ledger.AllocateGroundwater(nodes.Length);
             edgeByPair = new Dictionary<(int, int), int>();
             for (int i = 0; i < edges.Length; i++) edgeByPair.Add((edges[i].From, edges[i].To), i);
         }
@@ -163,6 +183,20 @@ namespace Daiyu.Simulation
         public CoarseNode Node(int id) => nodes[CheckedNode(id)];
         public CoarseEdge Edge(int id) => edges[CheckedEdge(id)];
         public long WaterAt(int node) => ledger.Read(new WaterAddress(WaterStore.Surface, CheckedNode(node)));
+        public long SoilLifeAt(int node) => ledger.Read(new WaterAddress(WaterStore.SoilLife, CheckedNode(node)));
+        public long GroundwaterAt(int node) => ledger.Read(new WaterAddress(WaterStore.Groundwater, CheckedNode(node)));
+        public long AtmosphereAt(int node) => ledger.Read(new WaterAddress(WaterStore.Atmosphere, CheckedNode(node)));
+        public long LastSpringFlowAt(int node) => lastGroundwaterRelease[CheckedNode(node)];
+        public int EcologyAt(int node) => ecology[CheckedNode(node)];
+
+        public int VisibilityAt(int node)
+        {
+            int index = CheckedNode(node);
+            long moisture = SoilLifeAt(index) + GroundwaterAt(index);
+            int visibility = 250 + ecology[index] / 2 + (WaterAt(index) > 0 ? 200 : 0) + (moisture > 0 ? 100 : 0);
+            if (Weather == CoarseWeather.Rain) visibility -= 150;
+            return Math.Max(0, Math.Min(1000, visibility));
+        }
 
         public bool TryPlan(int from, int to, out int edgeId)
         {
@@ -227,6 +261,21 @@ namespace Daiyu.Simulation
             return changed;
         }
 
+        /// <summary>Moves local atmospheric water onto a surface node through the same ledger used by flow.</summary>
+        public bool TrySummonRain(int node, long requested = 250)
+        {
+            int index = CheckedNode(node);
+            if (requested <= 0) return false;
+            long available = AtmosphereAt(index);
+            long room = nodes[index].Capacity - WaterAt(index);
+            long amount = Math.Min(requested, Math.Min(available, room));
+            if (amount <= 0) return false;
+            bool transferred = ledger.Transfer(new WaterAddress(WaterStore.Atmosphere, index),
+                new WaterAddress(WaterStore.Surface, index), amount, TransferReason.DivineRain).Amount > 0;
+            if (transferred) ecology[index] = Math.Min(1000, ecology[index] + 4);
+            return transferred;
+        }
+
         public long LastFlow(int edge) => lastFlow[CheckedEdge(edge)];
 
         public CoarseWorldSnapshot CaptureSnapshot()
@@ -239,21 +288,23 @@ namespace Daiyu.Simulation
             for (int i = 0; i < edges.Length; i++)
                 savedEdges[i] = new CoarseEdgeSnapshot { from = edges[i].From, to = edges[i].To,
                     rate = edges[i].Rate, enabled = edges[i].Enabled };
-            return new CoarseWorldSnapshot { formatVersion = 1, modelVersion = ModelVersion,
+            return new CoarseWorldSnapshot { formatVersion = 2, modelVersion = ModelVersion,
                 generatorVersion = GeneratorVersion, seed = Seed, tickMilliseconds = TickMilliseconds,
                 unitsPerMillimeter = UnitsPerMillimeter, tick = tick, remainderMilliseconds = remainderMilliseconds,
-                nodes = savedNodes, edges = savedEdges, ledger = ledger.CaptureSnapshot() };
+                nodes = savedNodes, edges = savedEdges, ledger = ledger.CaptureSnapshot(),
+                ecology = (int[])ecology.Clone() };
         }
 
         /// <summary>Build and validate a separate candidate. Never mutates an installed world.</summary>
         public static CoarseWorld Restore(CoarseWorldSnapshot snapshot)
         {
-            if (snapshot == null || snapshot.formatVersion != 1 || snapshot.modelVersion != ModelVersion ||
+            if (snapshot == null || snapshot.formatVersion != 2 || snapshot.modelVersion != ModelVersion ||
                 snapshot.generatorVersion != GeneratorVersion || snapshot.tickMilliseconds != TickMilliseconds ||
                 snapshot.unitsPerMillimeter != UnitsPerMillimeter || snapshot.tick < 0 ||
                 snapshot.remainderMilliseconds < 0 || snapshot.remainderMilliseconds >= TickMilliseconds ||
                 snapshot.nodes == null || snapshot.nodes.Length == 0 || snapshot.nodes.Length > 10000 ||
-                snapshot.edges == null || snapshot.edges.Length > 60000 || snapshot.ledger == null)
+                snapshot.edges == null || snapshot.edges.Length > 60000 || snapshot.ledger == null ||
+                snapshot.ecology == null || snapshot.ecology.Length != snapshot.nodes.Length)
                 throw new ArgumentException("Unsupported or invalid coarse world snapshot.");
             var nodes = new CoarseNode[snapshot.nodes.Length];
             var edges = new CoarseEdge[snapshot.edges.Length];
@@ -269,15 +320,15 @@ namespace Daiyu.Simulation
             }
             var candidate = Create(snapshot.seed, nodes, edges, new long[nodes.Length]);
             candidate.ledger.RestoreSnapshot(snapshot.ledger);
-            // A owns surface inventory only. Future subsystems must version and validate their state.
-            if (candidate.ledger.DivineRainTransferred != 0)
-                throw new ArgumentException("Unexpected subsystem inventory in surface-only snapshot.");
-            for (int store = 1; store < snapshot.ledger.pools.Length; store++)
-                foreach (long amount in snapshot.ledger.pools[store].amounts)
-                    if (amount != 0) throw new ArgumentException("Unexpected non-surface inventory.");
             for (int i = 0; i < nodes.Length; i++)
-                if (candidate.WaterAt(i) > nodes[i].Capacity)
-                    throw new ArgumentException("Saved surface account exceeds capacity.");
+            {
+                if (candidate.WaterAt(i) > nodes[i].Capacity || candidate.SoilLifeAt(i) > SoilLifeCapacity ||
+                    candidate.GroundwaterAt(i) > GroundwaterCapacity)
+                    throw new ArgumentException("Saved water account exceeds capacity.");
+                if (snapshot.ecology[i] < 0 || snapshot.ecology[i] > 1000)
+                    throw new ArgumentException("Saved ecology is outside its valid range.");
+                candidate.ecology[i] = snapshot.ecology[i];
+            }
             candidate.tick = snapshot.tick;
             candidate.remainderMilliseconds = snapshot.remainderMilliseconds;
             return candidate;
@@ -321,6 +372,57 @@ namespace Daiyu.Simulation
                     lastFlow[edge.Id] = ledger.Transfer(new WaterAddress(WaterStore.Surface, edge.From),
                         new WaterAddress(WaterStore.Surface, edge.To), requests[edge.Id], TransferReason.Flow).Amount;
             tick++;
+            if (tick % ClimateIntervalTicks == 0) AdvanceClimate();
+        }
+
+        void AdvanceClimate()
+        {
+            CoarseWeather weather = Weather;
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                lastGroundwaterRelease[i] = 0;
+                if (weather == CoarseWeather.Rain)
+                {
+                    long room = nodes[i].Capacity - WaterAt(i);
+                    long amount = Math.Min(40, Math.Min(AtmosphereAt(i), room));
+                    if (amount > 0)
+                        ledger.Transfer(new WaterAddress(WaterStore.Atmosphere, i),
+                            new WaterAddress(WaterStore.Surface, i), amount, TransferReason.NaturalRain);
+                }
+                else
+                {
+                    long evaporation = Math.Min(35, WaterAt(i));
+                    if (evaporation > 0)
+                        ledger.Transfer(new WaterAddress(WaterStore.Surface, i),
+                            new WaterAddress(WaterStore.Atmosphere, i), evaporation, TransferReason.Evaporation);
+                }
+
+                long infiltration = Math.Min(25, WaterAt(i));
+                long soilRoom = SoilLifeCapacity - SoilLifeAt(i);
+                infiltration = Math.Min(infiltration, soilRoom);
+                if (infiltration > 0)
+                    ledger.Transfer(new WaterAddress(WaterStore.Surface, i),
+                        new WaterAddress(WaterStore.SoilLife, i), infiltration, TransferReason.Infiltration);
+
+                long recharge = Math.Min(12, Math.Min(SoilLifeAt(i), GroundwaterCapacity - GroundwaterAt(i)));
+                if (recharge > 0)
+                    ledger.Transfer(new WaterAddress(WaterStore.SoilLife, i),
+                        new WaterAddress(WaterStore.Groundwater, i), recharge, TransferReason.Infiltration);
+
+                long springRoom = nodes[i].Capacity - WaterAt(i);
+                long springWater = GroundwaterAt(i) - GroundwaterSpringThreshold;
+                long spring = Math.Min(GroundwaterSpringRate, Math.Min(springWater, springRoom));
+                if (spring > 0)
+                {
+                    lastGroundwaterRelease[i] = ledger.Transfer(new WaterAddress(WaterStore.Groundwater, i),
+                        new WaterAddress(WaterStore.Surface, i), spring, TransferReason.Release).Amount;
+                }
+
+                long moisture = SoilLifeAt(i) + GroundwaterAt(i);
+                if (moisture >= 20) ecology[i] = Math.Min(1000, ecology[i] + 12);
+                else if (WaterAt(i) == 0) ecology[i] = Math.Max(0, ecology[i] - 8);
+                else ecology[i] = Math.Max(0, ecology[i] - 2);
+            }
         }
 
         int CheckedNode(int id) { if (id < 0 || id >= nodes.Length) throw new ArgumentOutOfRangeException(nameof(id)); return id; }

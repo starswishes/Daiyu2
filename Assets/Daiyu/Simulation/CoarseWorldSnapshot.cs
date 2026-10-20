@@ -38,5 +38,6 @@ namespace Daiyu.Simulation
         public CoarseNodeSnapshot[] nodes;
         public CoarseEdgeSnapshot[] edges;
         public WaterLedgerSnapshot ledger;
+        public int[] ecology;
     }
 }

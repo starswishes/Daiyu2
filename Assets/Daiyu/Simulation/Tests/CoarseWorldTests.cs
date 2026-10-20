@@ -249,9 +249,64 @@ namespace Daiyu.Simulation.Tests
             bad.nodes[wet].capacity = 100;
             Assert.Throws<ArgumentException>(() => CoarseWorld.Restore(bad));
             bad = world.CaptureSnapshot();
-            bad.ledger.pools[(int)Daiyu.Core.WaterStore.SoilLife].amounts[wet] = 100;
-            bad.ledger.pools[(int)Daiyu.Core.WaterStore.Surface].amounts[wet] -= 100;
+            bad.ledger.pools[(int)Daiyu.Core.WaterStore.Groundwater].amounts[wet] = CoarseWorld.GroundwaterCapacity + 1;
+            bad.ledger.pools[(int)Daiyu.Core.WaterStore.Surface].amounts[wet] -= CoarseWorld.GroundwaterCapacity + 1;
             Assert.Throws<ArgumentException>(() => CoarseWorld.Restore(bad));
+        }
+
+        [Test]
+        public void ClimateUsesLedgerForRainGroundwaterEcologyAndVisibility()
+        {
+            var world = CoarseWorld.Generate(1234, 2);
+            int source = -1;
+            for (int i = 0; i < world.NodeCount; i++) if (world.WaterAt(i) > 0) source = i;
+            Assert.That(world.GroundwaterAt(source), Is.Zero);
+            Assert.That(world.VisibilityAt(source), Is.GreaterThan(0));
+
+            world.Advance(CoarseWorld.TickMilliseconds * CoarseWorld.ClimateIntervalTicks);
+
+            Assert.That(world.Weather, Is.EqualTo(CoarseWeather.Cloudy));
+            Assert.That(world.AtmosphereAt(source), Is.GreaterThan(0));
+            Assert.That(world.SoilLifeAt(source), Is.GreaterThan(0));
+            Assert.That(world.GroundwaterAt(source), Is.GreaterThan(0));
+            int ecologyBefore = world.EcologyAt(source);
+            long atmosphereBefore = world.AtmosphereAt(source);
+            Assert.That(world.TrySummonRain(source, 20), Is.True);
+            Assert.That(world.AtmosphereAt(source), Is.LessThan(atmosphereBefore));
+            Assert.That(world.EcologyAt(source), Is.GreaterThan(ecologyBefore));
+            Assert.That(world.VisibilityAt(source), Is.GreaterThan(0));
+            Assert.That(world.TotalWater, Is.EqualTo(world.InitialWater));
+            var restored = CoarseWorld.Restore(world.CaptureSnapshot());
+            Assert.That(restored.EcologyAt(source), Is.EqualTo(world.EcologyAt(source)));
+            Assert.That(restored.GroundwaterAt(source), Is.EqualTo(world.GroundwaterAt(source)));
+            world.Advance(CoarseWorld.TickMilliseconds * CoarseWorld.ClimateIntervalTicks);
+            restored.Advance(CoarseWorld.TickMilliseconds * CoarseWorld.ClimateIntervalTicks);
+            Assert.That(restored.Tick, Is.EqualTo(world.Tick));
+            Assert.That(restored.TotalWater, Is.EqualTo(world.TotalWater));
+            Assert.That(restored.EcologyAt(source), Is.EqualTo(world.EcologyAt(source)));
+        }
+
+        [Test]
+        public void GroundwaterSpringsReturnWaterToSurfaceWithoutCreatingInventory()
+        {
+            var world = CoarseWorld.Generate(1234, 2);
+            int source = -1;
+            for (int i = 0; i < world.NodeCount; i++) if (world.WaterAt(i) > 0) source = i;
+
+            world.Advance(CoarseWorld.TickMilliseconds * CoarseWorld.ClimateIntervalTicks * 3);
+
+            Assert.That(world.LastSpringFlowAt(source), Is.EqualTo(CoarseWorld.GroundwaterSpringRate));
+            Assert.That(world.GroundwaterAt(source), Is.GreaterThanOrEqualTo(CoarseWorld.GroundwaterSpringThreshold));
+            Assert.That(world.TotalWater, Is.EqualTo(world.InitialWater));
+        }
+
+        [Test]
+        public void RestoreRejectsInvalidEcologyState()
+        {
+            var world = CoarseWorld.Generate(1234, 2);
+            var snapshot = world.CaptureSnapshot();
+            snapshot.ecology[0] = 1001;
+            Assert.Throws<ArgumentException>(() => CoarseWorld.Restore(snapshot));
         }
     }
 }

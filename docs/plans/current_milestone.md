@@ -2,7 +2,7 @@
 
 ## 当前工作
 
-M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正式场景引水与最小恢复闭环）。
+M1：斜向 2D 风格可玩版开发，A/B 已完成，C 规则接入与 D 表现可读性并行收尾。
 
 **开发门槛：APPROVED。已获用户批准按 M1 A～F 批次进入游戏开发。**
 
@@ -10,7 +10,7 @@ M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正�
 
 - 核对日期：2026-10-21。
 - 工作目录：`D:/Starwishes/Project/Unity/Daiyu2`，Unity 工程直接在根目录。
-- 版本管理：当前分支为本次审查创建的 `codex/review-fix-m1-b`，`origin` 为 `https://github.com/starswishes/Daiyu2.git`；本次用户明确授权在新分支提交并推送。恢复基线为 `main`/`origin/main` 的 `5fa3703`，实际提交 ID 与远端同步结果以 Git 为准。
+- 版本管理：当前分支为本次审查创建的 `codex/review-fix-m1-b`，`origin` 为 `https://github.com/starswishes/Daiyu2.git`；本次用户授权审查修复并仅在本地创建提交，不推送。恢复基线为 `main`/`origin/main` 的 `5fa3703`，实际提交 ID 以 Git 为准。
 - 本次读取 `ProjectSettings/ProjectVersion.txt`：`6000.3.25f1`；包版本以 `Packages/manifest.json` 为准。
 - 当前 `Assets/` 已包含 `Assets/Daiyu/Core`、`Assets/Daiyu/Simulation` 与 `Assets/Daiyu/Gameplay`；正式场景为 `Assets/Daiyu/Scenes/Daiyu.unity`，构建设置中唯一启用该场景。
 - 参考来源：相邻 `daiyu-unified-player-natural-v6` 项目，核对分支 `codex/lightweight-water-performance`、HEAD `eb821c3`。旧工程的核心、玩家流程、v4 存档与构建脚本尚未迁入 Daiyu2。
@@ -21,7 +21,7 @@ M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正�
 
 ## 用户确认与授权
 
-2026-10-21：用户明确回复「进入开发」，批准现有 M1 A～F 计划；本次用户进一步要求“审查当前阶段的代码和文档，修复问题，然后提交并推送到远端，新开一条分支”，据此授权本次审查修复、在新分支提交并推送。旧工程保持只读，真实玩家数据不触碰。
+2026-10-21：用户明确回复「进入开发」，批准现有 M1 A～F 计划；本次用户进一步要求“审查已有代码和文档，修复问题，然后提交”，据此授权本次审查修复及在当前分支创建本地提交，不授权推送。旧工程保持只读，真实玩家数据不触碰。
 
 | 事项 | 状态/依据 |
 |---|---|
@@ -40,7 +40,7 @@ M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正�
 | 里程碑执行粒度调整 | 用户要求「进行调整」；授权将 M1 总计划拆为六个可验收执行批次、逐批跟踪，不授权游戏开发或本轮提交/推送 |
 | 版本管理接入 | 用户提供 `https://github.com/starswishes/Daiyu2` 并指定作为版本管理工具；本轮初始化本地仓库、关联 origin 并建立 Unity 忽略规则 |
 | 当前工程提交/推送 | 用户明确要求「将当前项目提交到 https://github.com/starswishes/Daiyu2 仓库的 main 分支里面」；授权本轮初始提交及推送 main，不扩大为后续自动提交/推送权限 |
-| 游戏实现、合并/发布 | 已授权游戏实现；本次新分支提交/推送已授权；合并/发布仍需另行授权 |
+| 游戏实现、合并/发布 | 已授权游戏实现；本次审查修复及本地提交已授权；推送、合并/发布仍需另行授权 |
 
 ## 子任务
 
@@ -48,19 +48,19 @@ M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正�
 |---|---|---|---|---|
 | M0-01 | L2 | 建立并迁入事实源、任务分级、批准门槛与快速交付工作流 | DONE | 15 份 Markdown 已迁入/建立，37 个本地链接及空白检查通过；旧工程 `git status --porcelain` 为空，本次旧目录改动已全部撤销 |
 | M0-02 | L3 规划 | 按用户选项更新 M1 边界、粗水模型契约和分批计划 | DONE | [M1 执行计划](tasks/M1-01_oblique_2d_playable.md)、[设计方案](../design/oblique-2d-playable.md)、[ADR-001](adr/ADR-001_oblique_2d_presentation.md)、[ADR-002](adr/ADR-002_coarse_water_and_new_saves.md)；方向与开工范围已获确认 |
-| M1-01 | L3 总计划 | 统筹正式可玩版与 Windows 交付，按下表六批执行 | IN_PROGRESS | [M1 执行计划](tasks/M1-01_oblique_2d_playable.md)；用户已批准 A～F，A 已完成，当前审查修复 B |
+| M1-01 | L3 总计划 | 统筹正式可玩版与 Windows 交付，按下表六批执行 | IN_PROGRESS | [M1 执行计划](tasks/M1-01_oblique_2d_playable.md)；用户已批准 A～F，A/B 已完成，当前审查 C/D |
 | M0-03 | L2 | 落实工作流审查建议并接入 GitHub 版本管理 | DONE | 工作流/计划/入口已收敛，新增 `.gitignore`；main 与 origin 已核对，Markdown 链接/空白和缓存忽略规则检查通过；初始基线按用户后续授权纳入本轮提交，版本管理不等于允许开工 |
 
 ## M1 执行批次跟踪
 
-以下批次共用 M1 总计划及授权，不新建任务文档。A 已完成，B 进行中，后续批次按依赖推进，不逐批重新审批，也不因拆批降低 L3 风险等级。
+以下批次共用 M1 总计划及授权，不新建任务文档。A/B 已完成，C/D 进行中，后续批次按依赖推进，不逐批重新审批，也不因拆批降低 L3 风险等级。
 
 | 批次 | 目标/依赖 | 当前状态 | 实际结果与检查证据 |
 |---|---|---|---|
 | M1-01-A | 复用依赖与粗模型核心 | DONE | 迁入无 Unity 依赖账本；建立确定性静态六边形粗世界、有限库存、下坡连接、固定 Tick 与版本化快照；Unity 编译通过，EditMode 18/18 通过（测试 job `96af93fdbde642de8cfefc785506d8d1`） |
-| M1-01-B | 正式场景引水与最小恢复闭环；依赖 A | IN_PROGRESS | 已建立 `Assets/Daiyu/Scenes/Daiyu.unity`、固定透视相机、方向光和 `CoarseWorldSceneController`；运行画面可显示真实库存/节点状态，场景验证 0 问题；交互与保存恢复仍待定向冒烟 |
-| M1-01-C | 天气、生态、地下水与视野；依赖 B | APPROVED | 等待 B 完成；退出条件见总计划 C |
-| M1-01-D | 卡通世界与交互可读性；依赖 B/C | APPROVED | 等待 B/C 完成；退出条件见总计划 D |
+| M1-01-B | 正式场景引水与最小恢复闭环；依赖 A | DONE | 已建立 `Assets/Daiyu/Scenes/Daiyu.unity`、固定透视相机、方向光和 `CoarseWorldSceneController`；新增连续路径只读预览、整路径黄色高亮和 `CommitPath` 原子提交；正式控制器运行时完成 `3→2` 引水（`7000/0`→`6000/1000`）、保存 Tick 1、继续到 Tick 2、恢复 Tick 1 后再次推进到 Tick 2；损坏存档恢复保留当前 Tick；用户已完成人工鼠标选点、预览、提交及 F5/L 冒烟并确认功能正常 |
+| M1-01-C | 天气、生态、地下水与视野；依赖 B | IN_PROGRESS | 已接入同一 `CoarseWorld` 的天气周期、当地大气催雨、土壤/地下水转移、地下供泉、生态与视野派生；快照已扩展并通过恢复后继续推进测试；正式场景 HUD 已显示天气与节点状态，人工催雨输入尚未单独冒烟；退出条件见总计划 C |
+| M1-01-D | 卡通世界与交互可读性；依赖 B/C | IN_PROGRESS | 已接入连续六边形地表色块、二维植被卡片、生态驱动的颜色/高度反馈，以及黄线预览/蓝线已开路/青线来水和流向箭头；正式场景运行核对通过，装饰物不参与节点拾取；后续仍需完整人工交互冒烟与遮挡可读性检查；退出条件见总计划 D |
 | M1-01-E | 完整玩家流程与存读档；基于 B/C，退出依赖 D 集成 | APPROVED | 等待 B/C/D 完成；退出条件见总计划 E |
 | M1-01-F | Windows 集成与交付；依赖 A～E 完成 | APPROVED | 等待 A～E 完成；退出条件见总计划 F |
 
@@ -76,14 +76,16 @@ M1：斜向 2D 风格可玩版开发，A 核心已完成，当前执行 B（正�
 
 ## 下一步
 
-完成 B 的连续规划预览/提交、可见水路与隔离文件保存恢复冒烟，再进入 C。当前场景是同一正式链路的基础节点显示，已补平移/缩放，不是已交付可玩版，也不是最终卡通表现。`main`/`origin/main` 的 `5fa3703` 为恢复基线；本次审查修复在 `codex/review-fix-m1-b` 上进行，提交/推送已获授权，合并/发布仍需另行授权。
+C 规则接入与 D 表现可读性正在并行收尾：当前正式链路包含天气、地下水供泉、生态状态与连续六边形卡通地表/二维植被；仍不是已交付可玩版，人工催雨冒烟、水体分态、完整玩家流程尚未完成。`main`/`origin/main` 的 `5fa3703` 为恢复基线；本次审查修复在 `codex/review-fix-m1-b` 上进行，仅本地提交已获授权，不推送；合并/发布仍需另行授权。
 
 ## 2026-10-21 开发检查与限制
 
 - A：`Daiyu.Core` 与 `Daiyu.Simulation` 均无 Unity 引用；复用四个文件逐字节一致，项目 Assets GUID 无重复。实际接口为 `Generate/Create`、只读 `Node/Edge/WaterAt`、`TryPlan/TryFindPath/CommitPlan/CommitPath`、250ms `Advance/TickOnce`、`CaptureSnapshot/Restore`。地形高度为 mm，库存单位沿用账本（1000 单位/水量单位），水深近似为 10 库存单位/mm；边速率为每 Tick 单位。
-- 最新核心 EditMode 测试 **19/19 通过**，约 0.81 秒，job `14198dc3e9c74e2f889a20d3dc7f078e`；新增覆盖连续路径规划只读性。尚未做长期、多种子长时矩阵或独立审查；账本/恢复集中审查仍须在相应集成点完成。
-- B 审查修复：正式场景仍为唯一启用构建场景；控制器新增固定方向下的 WASD/方向键平移、滚轮缩放、连续路径只读规划接口，保存快捷键改为 F5 避免与平移 S 冲突，并释放运行时材质。场景进入/退出 Play Mode 通过，Console 脚本错误 0；相机截图 `Assets/Screenshots/screenshot-20261021-022349.png` 正常，截图已删除，不作为提交内容。
-- 文档审查：技术规范已同步实际 `Core/Simulation/Gameplay` 依赖和正式场景，当前阶段已记录新分支及本次提交/推送授权。尚未构建 Windows 包；旧工程与旧玩家数据未修改。`ProjectSettings/SceneTemplateSettings.json` 为 Unity 创建正式场景时生成的项目设置，已纳入审查范围。
+- 最新核心 EditMode 测试 **22/22 通过**（最近一次定向测试 job `141a6851552247f18041fa757f2e6cc8`）；覆盖连续路径规划、气候/催雨、地下水供泉、生态/视野、损坏生态快照拒绝和恢复后继续推进。尚未做长期、多种子长时矩阵或独立审查；账本/恢复集中审查仍须在相应集成点完成。
+- B 开发：正式场景仍为唯一启用构建场景；控制器新增固定方向下的 WASD/方向键平移、滚轮缩放、连续路径只读规划接口、目标路径黄色预览/整路径提交，并释放运行时材质；场景相机修正为真透视。正式控制器运行时闭环返回 `source=3,target=2,before=7000/0,flowed=6000/1000,savedTick=1,changedTick=2,restoredTick=1,restored=6000/1000,continuedTick=2`，损坏存档检查 `invalidLoadPreserved=True`，Console 脚本错误 0；人工鼠标选点/预览/提交及 F5/L 检查已记录为通过。
+- C 开发：`CoarseWorld` ModelVersion 已升为 2；天气按固定 Tick 周期切换，催雨从节点本地 Atmosphere 通过 `DivineRain` 转入 Surface，气候 Tick 使用同一账本完成蒸发、土壤渗透、地下水补给与阈值供泉，生态和视野由实际状态派生并进入快照。新增气候/催雨/地下水/供泉/生态/视野、损坏生态快照拒绝及恢复后继续推进检查；EditMode **22/22** 通过（测试 job `141a6851552247f18041fa757f2e6cc8`）。正式场景 HUD 已运行截图核对并删除截图产物，运行时 Console 脚本错误 0；尚未完成人工按键催雨与完整玩家流程冒烟。
+- D 开发：正式控制器新增连续六边形地表 Mesh、按生态状态变化的地表色块与二维植被卡片；植被 Collider 被移除，不抢节点拾取；已提交路径显示为蓝线，实际发生流动显示为青线并沿边显示方向箭头，规划路径保持黄色预览。运行画面与强制提交路径截图核对通过并删除截图产物；当前仍需完整人工交互冒烟与遮挡可读性检查。
+- 文档审查：技术规范已同步实际 `Core/Simulation/Gameplay` 依赖和正式场景，当前阶段已记录本地提交授权及不推送约束。尚未构建 Windows 包；旧工程与旧玩家数据未修改。`ProjectSettings/SceneTemplateSettings.json` 为 Unity 创建正式场景时生成的项目设置，已纳入审查范围。
 
 ## 早期文档轮次完成证据与限制（历史记录）
 
